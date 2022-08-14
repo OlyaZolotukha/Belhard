@@ -1,5 +1,3 @@
-# Belhard
+# Welcome Git #
 
-## Olya Zolotukha ##
-
-### test ###
+## Created by Olga Zolotukha ##
