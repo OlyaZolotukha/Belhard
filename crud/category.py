@@ -1,20 +1,20 @@
 from typing import Optional, List, Tuple
 
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, delete
 from sqlalchemy.exc import IntegrityError
 
-from models import Category, Product, create_sync_session
+from models import Category, Product, create_async_session
 
 
 class CRUDCategory:
 
     @staticmethod
-    @create_sync_session
-    def add(
+    @create_async_session
+    async def add(
             name: str,
             parent_id: int = None,
-            session: Session = None
+            session: AsyncSession = None
     ) -> Optional[Category]:
         category = Category(
             name=name,
@@ -22,17 +22,17 @@ class CRUDCategory:
         )
         session.add(category)
         try:
-            session.commit()
+            await session.commit()
         except IntegrityError:
             pass
         else:
-            session.refresh(category)
+            await session.refresh(category)
             return category
 
     @staticmethod
-    @create_sync_session
-    def get(category_id: int, session: Session = None) -> Optional[Category]:
-        category = session.execute(
+    @create_async_session
+    async def get(category_id: int, session: AsyncSession = None) -> Optional[Category]:
+        category = await session.execute(
             select(Category).where(Category.id == category_id)
         )
         category = category.first()
@@ -40,40 +40,40 @@ class CRUDCategory:
             return category[0]
 
     @staticmethod
-    @create_sync_session
-    def all(parent_id: int = None, session: Session = None) -> List[Category]:
+    @create_async_session
+    async def all(parent_id: int = None, session: AsyncSession = None) -> List[Category]:
         if parent_id:
-            categories = session.execute(
+            categories = await session.execute(
                 select(Category)
                 .where(Category.parent_id == parent_id)
                 .order_by(Category.id)
             )
         else:
-            categories = session.execute(
+            categories = await session.execute(
                 select(Category)
                 .order_by(Category.id)
             )
         return [category[0] for category in categories]
 
     @staticmethod
-    @create_sync_session
-    def delete(category_id: int, session: Session = None) -> None:
-        session.execute(
+    @create_async_session
+    async def delete(category_id: int, session: AsyncSession = None) -> None:
+        await session.execute(
             delete(Category)
             .where(Category.id == category_id)
         )
-        session.commit()
+        await session.commit()
 
     @staticmethod
-    @create_sync_session
-    def update(
+    @create_async_session
+    async def update(
             category_id: int,
             name: str = None,
             parent_id: int = None,
-            session: Session = None
+            session: AsyncSession = None
     ) -> bool:
         if name or parent_id:
-            session.execute(
+            await session.execute(
                 update(Category)
                 .where(Category.id == category_id)
                 .values(
@@ -82,7 +82,7 @@ class CRUDCategory:
                 )
             )
             try:
-                session.commit()
+                await session.commit()
             except IntegrityError:
                 return False
             else:
@@ -91,19 +91,19 @@ class CRUDCategory:
             return False
 
     @staticmethod
-    @create_sync_session
-    def join(
+    @create_async_session
+    async def join(
             category_id: int = None,
-            session: Session = None
+            session: AsyncSession = None
     ) -> List[Tuple[Category, Product]]:
         if category_id:
-            response = session.execute(
+            response = await session.execute(
                 select(Category, Product)
                 .join(Product, Category.id == Product.category_id)
                 .where(Category.id == category_id)
             )
         else:
-            response = session.execute(
+            response = await session.execute(
                 select(Category, Product)
                 .join(Product, Category.id == Product.category_id)
             )

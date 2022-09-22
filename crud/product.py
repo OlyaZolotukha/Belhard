@@ -1,6 +1,6 @@
 from typing import Optional, List, Tuple
 
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, delete
 from sqlalchemy.exc import IntegrityError
 
@@ -10,12 +10,12 @@ from models import Product, OrderItem, create_sync_session
 class CRUDProduct:
     @staticmethod
     @create_sync_session
-    def add(
+    async def add(
             name: str,
             price: float = None,
             descr: str = None,
             category_id: int = None,
-            session: Session = None
+            session: AsyncSession = None
     ) -> Optional[Product]:
         product = Product(
             name=name,
@@ -25,17 +25,17 @@ class CRUDProduct:
         )
         session.add(product)
         try:
-            session.commit()
+            await session.commit()
         except IntegrityError:
             pass
         else:
-            session.refresh(product)
+            await session.refresh(product)
             return product
 
     @staticmethod
     @create_sync_session
-    def get(article: int, session: Session = None) -> Optional[Product]:
-        product = session.execute(
+    async def get(article: int, session: AsyncSession = None) -> Optional[Product]:
+        product = await session.execute(
             select(Product).where(Product.article == article)
         )
         product = product.first()
@@ -44,15 +44,15 @@ class CRUDProduct:
 
     @staticmethod
     @create_sync_session
-    def all(category_id: int = None, session: Session = None) -> List[Product]:
+    async def all(category_id: int = None, session: AsyncSession = None) -> List[Product]:
         if category_id:
-            products = session.execute(
+            products = await session.execute(
                 select(Product)
                 .where(Product.category_id == category_id)
                 .order_by(Product.article)
             )
         else:
-            products = session.execute(
+            products = await session.execute(
                 select(Product)
                 .order_by(Product.article)
             )
@@ -60,25 +60,25 @@ class CRUDProduct:
 
     @staticmethod
     @create_sync_session
-    def delete(article: int, session: Session = None) -> None:
-        session.execute(
+    async def delete(article: int, session: AsyncSession = None) -> None:
+        await session.execute(
             delete(Product)
             .where(Product.article == article)
         )
-        session.commit()
+        await session.commit()
 
     @staticmethod
     @create_sync_session
-    def update(
+    async def update(
             article: int,
             name: str = None,
             price: float = None,
             descr: str = None,
             category_id: int = None,
-            session: Session = None
+            session: AsyncSession = None
     ) -> bool:
         if name or price or descr or category_id:
-            session.execute(
+            await session.execute(
                 update(Product)
                 .where(Product.article == article)
                 .values(
@@ -89,7 +89,7 @@ class CRUDProduct:
                 )
             )
             try:
-                session.commit()
+                await session.commit()
             except IntegrityError:
                 return False
             else:
@@ -99,15 +99,16 @@ class CRUDProduct:
 
     @staticmethod
     @create_sync_session
-    def join(article: int = None, session: Session = None) -> List[Tuple[Product, OrderItem]]:
+    async def join(article: int = None, session: AsyncSession = None) -> List[Tuple[Product, OrderItem]]:
         if article:
-            response = session.execute(
+            response = await session.execute(
                 select(Product, OrderItem)
                 .join(OrderItem, Product.article == OrderItem.product_article)
                 .where(Product.article == article)
             )
-        response = session.execute(
-            select(Product, OrderItem)
-            .join(OrderItem, Product.article == OrderItem.product_article)
-        )
+        else:
+            response = await session.execute(
+                select(Product, OrderItem)
+                .join(OrderItem, Product.article == OrderItem.product_article)
+            )
         return response.all()

@@ -1,33 +1,33 @@
 from typing import Optional
 
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, delete
 from sqlalchemy.exc import IntegrityError
 
-from models import OrderItem, create_sync_session
+from models import OrderItem, create_async_session
 
 
 class CRUDOrderItem:
     @staticmethod
-    @create_sync_session
-    def add(order_id: int, product_article: int, session: Session = None) -> Optional[OrderItem]:
+    @create_async_session
+    async def add(order_id: int, product_article: int, session: AsyncSession = None) -> Optional[OrderItem]:
         order_item = OrderItem(
             order_id=order_id,
             product_article=product_article
         )
         session.add(order_id)
         try:
-            session.commit()
+            await session.commit()
         except IntegrityError:
             pass
         else:
-            session.refresh(order_id)
+            await session.refresh(order_id)
             return order_item
 
     @staticmethod
-    @create_sync_session
-    def get(order_item_id: int, session: Session = None) -> Optional[OrderItem]:
-        order_item_id = session.execute(
+    @create_async_session
+    async def get(order_item_id: int, session: AsyncSession = None) -> Optional[OrderItem]:
+        order_item_id = await session.execute(
             select(OrderItem).where(OrderItem.order_id == order_item_id)
         )
         order_item_id = order_item_id.first()
@@ -35,35 +35,35 @@ class CRUDOrderItem:
             return order_item_id[0]
 
     @staticmethod
-    @create_sync_session
-    def all(order_item_id: int = None, session: Session = None) -> list[OrderItem]:
+    @create_async_session
+    async def all(order_item_id: int = None, session: AsyncSession = None) -> list[OrderItem]:
         if order_item_id:
-            order_items = session.execute(
+            order_items = await session.execute(
                 select(OrderItem)
                 .where(OrderItem.order_id == order_item_id)
                 .order_by(OrderItem.id)
             )
         else:
-            order_items = session.execute(
+            order_items = await session.execute(
                 select(OrderItem)
                 .order_by(OrderItem.id)
             )
         return [order_item[0] for order_item in order_items]
 
     @staticmethod
-    @create_sync_session
-    def delete(order_item_id: int = None, session: Session = None) -> None:
-        session.execute(
+    @create_async_session
+    async def delete(order_item_id: int = None, session: AsyncSession = None) -> None:
+        await session.execute(
             delete(OrderItem)
             .where(OrderItem.id == order_item_id)
         )
-        session.commit()
+        await session.commit()
 
     @staticmethod
-    @create_sync_session
-    def update(order_item_id: int, order_id: int = None, session: Session = None) -> bool:
+    @create_async_session
+    async def update(order_item_id: int, order_id: int = None, session: AsyncSession = None) -> bool:
         if order_id:
-            session.execute(
+            await session.execute(
                 update(OrderItem)
                 .where(OrderItem.id == order_item_id)
                 .values(
@@ -71,7 +71,7 @@ class CRUDOrderItem:
                 )
             )
             try:
-                session.commit()
+                await session.commit()
             except IntegrityError:
                 return False
             else:
